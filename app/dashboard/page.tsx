@@ -37,7 +37,7 @@ export default function Dashboard() {
       const { data, error } = await supabase
         .from("subjects")
         .select(
-          "id, name, code, description, academic_year, semester, created_at"
+          "id, teacher_id, name, code, description, academic_year, semester, created_at, updated_at"
         )
         .eq("teacher_id", user.id)
         .order("created_at", { ascending: false })

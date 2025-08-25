@@ -120,3 +120,53 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Global cursor styles for better UX */
+button, 
+a, 
+[role="button"], 
+.cursor-pointer,
+.hover\:cursor-pointer:hover {
+  cursor: pointer;
+}
+
+input[type="text"],
+input[type="email"], 
+input[type="password"],
+input[type="number"],
+textarea,
+select,
+.cursor-text {
+  cursor: text;
+}
+
+input[disabled],
+button[disabled],
+.cursor-not-allowed {
+  cursor: not-allowed;
+}
+
+.cursor-grab {
+  cursor: grab;
+}
+
+.cursor-grabbing {
+  cursor: grabbing;
+}
+
+/* Enhanced hover effects */
+button:hover:not([disabled]),
+a:hover,
+[role="button"]:hover:not([disabled]) {
+  transition: all 0.2s ease-in-out;
+}
+
+/* Link hover effects */
+a {
+  transition: color 0.2s ease-in-out;
+}
+
+/* Button hover effects */
+button {
+  transition: all 0.2s ease-in-out;
+}

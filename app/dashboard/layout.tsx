@@ -2,9 +2,11 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Icon } from "@iconify/react";
-import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/auth-context";
+import { UserDropdown } from "@/components/user/user-dropdown";
+import { Footer } from "@/components/layout/footer";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -18,15 +20,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       router.replace("/");
     }
   }, [user, loading, router]);
-
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-      router.replace("/");
-    } catch (error) {
-      console.error("Sign out error:", error);
-    }
-  };
 
   // Show loading only for initial auth check
   if (loading) {
@@ -54,29 +47,35 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       <header className="border-b bg-card">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="w-8 h-8">
-              <img
-                src="/logo.png"
-                alt="AttendanceTracker Logo"
-                className="w-full h-full"
-              />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold">AttendanceTracker</h1>
-              <p className="text-sm text-muted-foreground">
-                Welcome back, {teacher?.name}
-              </p>
-            </div>
+            <Link
+              href="/dashboard"
+              className="flex items-center gap-4 cursor-pointer">
+              <div className="w-8 h-8 bg-white rounded-lg p-1.5 shadow-sm border">
+                <img
+                  src="/logo.png"
+                  alt="AttendanceTracker Logo"
+                  className="w-full h-full"
+                />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold">AttendanceTracker</h1>
+                <p className="text-sm text-muted-foreground">
+                  Welcome back, {teacher?.name}
+                </p>
+              </div>
+            </Link>
           </div>
-          <Button variant="ghost" size="sm" onClick={handleSignOut}>
-            <Icon icon="lucide:log-out" className="h-4 w-4 mr-2" />
-            Sign Out
-          </Button>
+          <UserDropdown />
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">{children}</main>
+      <main className="container mx-auto px-4 py-8 min-h-[calc(100vh-200px)]">
+        {children}
+      </main>
+
+      {/* Footer */}
+      <Footer />
     </div>
   );
 }
