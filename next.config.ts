@@ -1,7 +1,16 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  experimental: {
+    optimizePackageImports: ['@iconify/react', 'date-fns', 'xlsx'],
+  },
+  images: {
+    formats: ['image/webp', 'image/avif'],
+  },
+  compress: true,
+  poweredByHeader: false,
+  generateEtags: false,
+  reactStrictMode: true,
 };
 
 export default nextConfig;
