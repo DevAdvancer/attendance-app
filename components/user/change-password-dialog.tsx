@@ -17,14 +17,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/lib/supabase";
 
-const changePasswordSchema = z.object({
-  currentPassword: z.string().min(1, "Current password is required"),
-  newPassword: z.string().min(6, "Password must be at least 6 characters"),
-  confirmPassword: z.string().min(1, "Please confirm your password"),
-}).refine((data) => data.newPassword === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-});
+const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, "Current password is required"),
+    newPassword: z.string().min(6, "Password must be at least 6 characters"),
+    confirmPassword: z.string().min(1, "Please confirm your password"),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"],
+  });
 
 type ChangePasswordForm = z.infer<typeof changePasswordSchema>;
 
@@ -33,7 +35,10 @@ interface ChangePasswordDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialogProps) {
+export function ChangePasswordDialog({
+  open,
+  onOpenChange,
+}: ChangePasswordDialogProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -63,7 +68,7 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
 
       setSuccess(true);
       reset();
-      
+
       // Close dialog after 2 seconds
       setTimeout(() => {
         setSuccess(false);
@@ -97,7 +102,10 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
 
         {success ? (
           <div className="flex flex-col items-center py-8">
-            <Icon icon="lucide:check-circle" className="h-12 w-12 text-green-600 mb-4" />
+            <Icon
+              icon="lucide:check-circle"
+              className="h-12 w-12 text-green-600 mb-4"
+            />
             <p className="text-center text-green-600 font-medium">
               Password changed successfully!
             </p>
@@ -107,9 +115,9 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
             <div className="space-y-2">
               <Label htmlFor="currentPassword">Current Password</Label>
               <div className="relative">
-                <Icon 
-                  icon="lucide:lock" 
-                  className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" 
+                <Icon
+                  icon="lucide:lock"
+                  className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
                 />
                 <Input
                   id="currentPassword"
@@ -124,25 +132,26 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
                   variant="ghost"
                   size="sm"
                   className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 cursor-pointer"
-                  onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                >
-                  <Icon 
-                    icon={showCurrentPassword ? "lucide:eye-off" : "lucide:eye"} 
-                    className="h-4 w-4" 
+                  onClick={() => setShowCurrentPassword(!showCurrentPassword)}>
+                  <Icon
+                    icon={showCurrentPassword ? "lucide:eye-off" : "lucide:eye"}
+                    className="h-4 w-4"
                   />
                 </Button>
               </div>
               {errors.currentPassword && (
-                <p className="text-sm text-red-600">{errors.currentPassword.message}</p>
+                <p className="text-sm text-red-600">
+                  {errors.currentPassword.message}
+                </p>
               )}
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="newPassword">New Password</Label>
               <div className="relative">
-                <Icon 
-                  icon="lucide:lock" 
-                  className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" 
+                <Icon
+                  icon="lucide:lock"
+                  className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
                 />
                 <Input
                   id="newPassword"
@@ -157,25 +166,26 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
                   variant="ghost"
                   size="sm"
                   className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 cursor-pointer"
-                  onClick={() => setShowNewPassword(!showNewPassword)}
-                >
-                  <Icon 
-                    icon={showNewPassword ? "lucide:eye-off" : "lucide:eye"} 
-                    className="h-4 w-4" 
+                  onClick={() => setShowNewPassword(!showNewPassword)}>
+                  <Icon
+                    icon={showNewPassword ? "lucide:eye-off" : "lucide:eye"}
+                    className="h-4 w-4"
                   />
                 </Button>
               </div>
               {errors.newPassword && (
-                <p className="text-sm text-red-600">{errors.newPassword.message}</p>
+                <p className="text-sm text-red-600">
+                  {errors.newPassword.message}
+                </p>
               )}
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">Confirm New Password</Label>
               <div className="relative">
-                <Icon 
-                  icon="lucide:lock-keyhole" 
-                  className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" 
+                <Icon
+                  icon="lucide:lock-keyhole"
+                  className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
                 />
                 <Input
                   id="confirmPassword"
@@ -190,16 +200,17 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
                   variant="ghost"
                   size="sm"
                   className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 cursor-pointer"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                >
-                  <Icon 
-                    icon={showConfirmPassword ? "lucide:eye-off" : "lucide:eye"} 
-                    className="h-4 w-4" 
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}>
+                  <Icon
+                    icon={showConfirmPassword ? "lucide:eye-off" : "lucide:eye"}
+                    className="h-4 w-4"
                   />
                 </Button>
               </div>
               {errors.confirmPassword && (
-                <p className="text-sm text-red-600">{errors.confirmPassword.message}</p>
+                <p className="text-sm text-red-600">
+                  {errors.confirmPassword.message}
+                </p>
               )}
             </div>
 
@@ -215,18 +226,19 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
                 variant="outline"
                 onClick={() => handleOpenChange(false)}
                 disabled={loading}
-                className="cursor-pointer"
-              >
+                className="cursor-pointer">
                 Cancel
               </Button>
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 disabled={loading}
-                className="cursor-pointer"
-              >
+                className="cursor-pointer">
                 {loading ? (
                   <>
-                    <Icon icon="lucide:loader-2" className="mr-2 h-4 w-4 animate-spin" />
+                    <Icon
+                      icon="lucide:loader-2"
+                      className="mr-2 h-4 w-4 animate-spin"
+                    />
                     Changing...
                   </>
                 ) : (

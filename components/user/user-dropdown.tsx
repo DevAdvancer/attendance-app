@@ -35,11 +35,10 @@ export function UserDropdown() {
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="relative h-10 w-10 rounded-full hover:bg-muted cursor-pointer"
-          >
+          <Button
+            variant="ghost"
+            size="sm"
+            className="relative h-10 w-10 rounded-full hover:bg-muted cursor-pointer">
             <Icon icon="lucide:user" className="h-5 w-5" />
           </Button>
         </DropdownMenuTrigger>
@@ -53,25 +52,22 @@ export function UserDropdown() {
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem 
+          <DropdownMenuItem
             onClick={() => setShowEditProfile(true)}
-            className="cursor-pointer"
-          >
+            className="cursor-pointer">
             <Icon icon="lucide:user-cog" className="mr-2 h-4 w-4" />
             Edit Profile
           </DropdownMenuItem>
-          <DropdownMenuItem 
+          <DropdownMenuItem
             onClick={() => setShowChangePassword(true)}
-            className="cursor-pointer"
-          >
+            className="cursor-pointer">
             <Icon icon="lucide:key" className="mr-2 h-4 w-4" />
             Change Password
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem 
+          <DropdownMenuItem
             onClick={handleSignOut}
-            className="cursor-pointer text-red-600 focus:text-red-600"
-          >
+            className="cursor-pointer text-red-600 focus:text-red-600">
             <Icon icon="lucide:log-out" className="mr-2 h-4 w-4" />
             Sign Out
           </DropdownMenuItem>
@@ -82,7 +78,7 @@ export function UserDropdown() {
         open={showEditProfile}
         onOpenChange={setShowEditProfile}
       />
-      
+
       <ChangePasswordDialog
         open={showChangePassword}
         onOpenChange={setShowChangePassword}

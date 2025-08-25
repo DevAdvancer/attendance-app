@@ -29,7 +29,10 @@ interface EditProfileDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export function EditProfileDialog({ open, onOpenChange }: EditProfileDialogProps) {
+export function EditProfileDialog({
+  open,
+  onOpenChange,
+}: EditProfileDialogProps) {
   const { teacher, user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -94,9 +97,9 @@ export function EditProfileDialog({ open, onOpenChange }: EditProfileDialogProps
           <div className="space-y-2">
             <Label htmlFor="name">Full Name</Label>
             <div className="relative">
-              <Icon 
-                icon="lucide:user" 
-                className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" 
+              <Icon
+                icon="lucide:user"
+                className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
               />
               <Input
                 id="name"
@@ -114,9 +117,9 @@ export function EditProfileDialog({ open, onOpenChange }: EditProfileDialogProps
           <div className="space-y-2">
             <Label>Email</Label>
             <div className="relative">
-              <Icon 
-                icon="lucide:mail" 
-                className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" 
+              <Icon
+                icon="lucide:mail"
+                className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
               />
               <Input
                 value={user?.email || ""}
@@ -141,18 +144,16 @@ export function EditProfileDialog({ open, onOpenChange }: EditProfileDialogProps
               variant="outline"
               onClick={() => handleOpenChange(false)}
               disabled={loading}
-              className="cursor-pointer"
-            >
+              className="cursor-pointer">
               Cancel
             </Button>
-            <Button 
-              type="submit" 
-              disabled={loading}
-              className="cursor-pointer"
-            >
+            <Button type="submit" disabled={loading} className="cursor-pointer">
               {loading ? (
                 <>
-                  <Icon icon="lucide:loader-2" className="mr-2 h-4 w-4 animate-spin" />
+                  <Icon
+                    icon="lucide:loader-2"
+                    className="mr-2 h-4 w-4 animate-spin"
+                  />
                   Updating...
                 </>
               ) : (

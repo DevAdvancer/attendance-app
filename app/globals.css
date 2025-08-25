@@ -122,16 +122,16 @@
 }
 
 /* Global cursor styles for better UX */
-button, 
-a, 
-[role="button"], 
+button,
+a,
+[role="button"],
 .cursor-pointer,
 .hover\:cursor-pointer:hover {
   cursor: pointer;
 }
 
 input[type="text"],
-input[type="email"], 
+input[type="email"],
 input[type="password"],
 input[type="number"],
 textarea,
