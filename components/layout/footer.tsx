@@ -1,8 +1,16 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import { Icon } from "@iconify/react";
 import Link from "next/link";
 
 export function Footer() {
-  const currentYear = new Date().getFullYear();
+  const [currentYear, setCurrentYear] = useState(2024); // Default fallback
+  
+  useEffect(() => {
+    // Only set the current year on the client side
+    setCurrentYear(new Date().getFullYear());
+  }, []);
 
   return (
     <footer className="border-t bg-card">

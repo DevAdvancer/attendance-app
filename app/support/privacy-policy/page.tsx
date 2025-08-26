@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Icon } from "@iconify/react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,19 @@ import {
 import { ScrollToTop } from "@/components/ui/scroll-to-top";
 
 export default function PrivacyPolicyPage() {
+  const [lastUpdated, setLastUpdated] = useState("January 1, 2024"); // Default fallback
+  
+  useEffect(() => {
+    // Only set the current date on the client side
+    setLastUpdated(
+      new Date().toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })
+    );
+  }, []);
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -31,7 +45,11 @@ export default function PrivacyPolicyPage() {
 
           <Button
             variant="outline"
-            onClick={() => window.history.back()}
+            onClick={() => {
+              if (typeof window !== 'undefined') {
+                window.history.back();
+              }
+            }}
             className="flex items-center gap-2">
             <Icon icon="lucide:arrow-left" className="h-4 w-4" />
             Back
@@ -50,12 +68,7 @@ export default function PrivacyPolicyPage() {
               protect your information.
             </p>
             <p className="text-sm text-muted-foreground mt-2">
-              Last updated:{" "}
-              {new Date().toLocaleDateString("en-US", {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              })}
+              Last updated: {lastUpdated}
             </p>
           </div>
 

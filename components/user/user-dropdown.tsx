@@ -23,7 +23,9 @@ export function UserDropdown() {
   const handleSignOut = async () => {
     try {
       await signOut();
-      window.location.href = "/";
+      if (typeof window !== 'undefined') {
+        window.location.href = "/";
+      }
     } catch (error) {
       console.error("Sign out error:", error);
     }

@@ -33,7 +33,11 @@ export default function HelpCenterPage() {
 
           <Button
             variant="outline"
-            onClick={() => window.history.back()}
+            onClick={() => {
+              if (typeof window !== 'undefined') {
+                window.history.back();
+              }
+            }}
             className="flex items-center gap-2">
             <Icon icon="lucide:arrow-left" className="h-4 w-4" />
             Back

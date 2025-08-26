@@ -2,7 +2,6 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import { User } from "@supabase/supabase-js";
-import { useRouter } from "next/navigation";
 import { supabase, type Teacher } from "@/lib/supabase";
 
 interface AuthContextType {
@@ -20,13 +19,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [teacher, setTeacher] = useState<Teacher | null>(null);
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
+
+  // Handle hydration
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
-    let mounted = true;
+    if (!mounted) return; // Don't run on server side
+
+    let componentMounted = true;
 
     // Safety timeout to prevent infinite loading
     const timeoutId = setTimeout(() => {
-      if (mounted) {
+      if (componentMounted) {
         setLoading(false);
       }
     }, 5000); // 5 second timeout
@@ -39,7 +46,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           error,
         } = await supabase.auth.getSession();
 
-        if (!mounted) return;
+        if (!componentMounted) return;
 
         if (error) {
           setLoading(false);
@@ -51,11 +58,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           await fetchTeacherProfile(session.user.id);
         }
 
-        if (mounted) {
+        if (componentMounted) {
           setLoading(false);
         }
       } catch (error) {
-        if (mounted) {
+        if (componentMounted) {
           setLoading(false);
         }
       }
@@ -67,7 +74,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (!mounted) return;
+      if (!componentMounted) return;
 
       if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
         setUser(session?.user ?? null);
@@ -79,17 +86,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setTeacher(null);
       }
 
-      if (mounted) {
+      if (componentMounted) {
         setLoading(false);
       }
     });
 
     return () => {
-      mounted = false;
+      componentMounted = false;
       clearTimeout(timeoutId);
       subscription.unsubscribe();
     };
-  }, []);
+  }, [mounted]);
 
   const fetchTeacherProfile = async (userId: string) => {
     try {
@@ -167,6 +174,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signUp,
     signOut,
   };
+
+  // Prevent hydration mismatch by not rendering children until mounted
+  if (!mounted) {
+    return (
+      <AuthContext.Provider value={value}>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+            <p className="text-sm text-muted-foreground">Loading...</p>
+          </div>
+        </div>
+      </AuthContext.Provider>
+    );
+  }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

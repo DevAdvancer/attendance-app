@@ -37,9 +37,11 @@ export function HeroSection() {
                 size="lg"
                 className="cursor-pointer"
                 onClick={() => {
-                  document.getElementById("features")?.scrollIntoView({
-                    behavior: "smooth",
-                  });
+                  if (typeof document !== 'undefined') {
+                    document.getElementById("features")?.scrollIntoView({
+                      behavior: "smooth",
+                    });
+                  }
                 }}>
                 <Icon icon="lucide:play" className="mr-2 h-4 w-4" />
                 Learn More

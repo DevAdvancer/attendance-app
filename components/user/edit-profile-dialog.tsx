@@ -67,7 +67,9 @@ export function EditProfileDialog({
       if (updateError) throw updateError;
 
       // Refresh the page to update the context
-      window.location.reload();
+      if (typeof window !== 'undefined') {
+        window.location.reload();
+      }
     } catch (error: any) {
       setError(error.message || "Failed to update profile");
     } finally {
