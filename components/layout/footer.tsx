@@ -6,7 +6,7 @@ import Link from "next/link";
 
 export function Footer() {
   const [currentYear, setCurrentYear] = useState(2024); // Default fallback
-  
+
   useEffect(() => {
     // Only set the current year on the client side
     setCurrentYear(new Date().getFullYear());
@@ -35,19 +35,19 @@ export function Footer() {
             </p>
             <div className="flex gap-4">
               <a
-                href="#"
+                href="https://www.github.com/devadvancer"
                 className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                 aria-label="GitHub">
                 <Icon icon="lucide:github" className="h-5 w-5" />
               </a>
               <a
-                href="#"
+                href="https://x.com/devadvancer"
                 className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                 aria-label="Twitter">
                 <Icon icon="lucide:twitter" className="h-5 w-5" />
               </a>
               <a
-                href="#"
+                href="https://www.linkedin.com/in/abhirupkumar"
                 className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                 aria-label="LinkedIn">
                 <Icon icon="lucide:linkedin" className="h-5 w-5" />

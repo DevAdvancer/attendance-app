@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { Icon } from "@iconify/react";
@@ -34,17 +34,18 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import {
-  supabase,
-  type Subject,
-  type Student,
-  type Attendance,
-} from "@/lib/supabase";
+import { supabase, type Attendance, type Student } from "@/lib/supabase";
 import { useAuth } from "@/contexts/auth-context";
+import {
+  useSubjectWithStudents,
+  useAttendance,
+  cacheManagement,
+} from "@/lib/hooks/use-optimized-data";
+import { LoadingSpinner, ErrorState } from "@/components/ui/loading-states";
 import { AttendanceMarkingCard } from "@/components/attendance/attendance-marking-card";
 
 interface GroupedStudents {
-  [key: string]: Student[];
+  [key: string]: any[];
 }
 
 export default function AttendancePage() {
@@ -53,121 +54,167 @@ export default function AttendancePage() {
   const { user } = useAuth();
   const subjectId = params.id as string;
 
-  const [subject, setSubject] = useState<Subject | null>(null);
-  const [students, setStudents] = useState<Student[]>([]);
-  const [attendance, setAttendance] = useState<Attendance[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [groupBy, setGroupBy] = useState<"roll" | "course">("roll");
+  const [pendingChanges, setPendingChanges] = useState<
+    Record<string, "present" | "absent">
+  >({});
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
-  useEffect(() => {
-    fetchData();
-  }, [subjectId, selectedDate]);
+  const dateStr = format(selectedDate, "yyyy-MM-dd");
 
-  const fetchData = async () => {
-    try {
-      // Fetch subject details
-      const { data: subjectData, error: subjectError } = await supabase
-        .from("subjects")
-        .select("*")
-        .eq("id", subjectId)
-        .single();
-
-      if (subjectError) throw subjectError;
-      setSubject(subjectData);
-
-      // Fetch students
-      const { data: studentsData, error: studentsError } = await supabase
-        .from("students")
-        .select("*")
-        .eq("subject_id", subjectId);
-
-      if (studentsError) throw studentsError;
-      setStudents(studentsData || []);
-
-      // Fetch attendance for selected date
-      const dateStr = format(selectedDate, "yyyy-MM-dd");
-      const { data: attendanceData, error: attendanceError } = await supabase
-        .from("attendance")
-        .select("*")
-        .eq("subject_id", subjectId)
-        .eq("date", dateStr);
-
-      if (attendanceError) throw attendanceError;
-      setAttendance(attendanceData || []);
-    } catch (error) {
-      console.error("Error fetching data:", error);
-    } finally {
-      setLoading(false);
+  // Reset pending changes when date changes
+  const handleDateChange = (date: Date | undefined) => {
+    if (date) {
+      // If there are unsaved changes, ask user to confirm
+      if (hasUnsavedChanges) {
+        if (
+          confirm(
+            "You have unsaved changes. Are you sure you want to change the date? All changes will be lost."
+          )
+        ) {
+          setSelectedDate(date);
+          setPendingChanges({});
+          setHasUnsavedChanges(false);
+        }
+      } else {
+        setSelectedDate(date);
+      }
     }
   };
 
-  const handleAttendanceChange = async (
+  // Use optimized hooks
+  const {
+    data: subjectData,
+    loading: subjectLoading,
+    error: subjectError,
+    refetch: refetchSubject,
+  } = useSubjectWithStudents(subjectId);
+
+  const {
+    data: attendanceData,
+    loading: attendanceLoading,
+    error: attendanceError,
+    refetch: refetchAttendance,
+  } = useAttendance(subjectId, dateStr);
+
+  const subject = subjectData?.subject || null;
+  const students = subjectData?.students || [];
+  const attendance = attendanceData || [];
+
+  const loading = subjectLoading || attendanceLoading;
+  const error = subjectError || attendanceError;
+
+  // Reset pending changes when date changes or component unmounts
+  useEffect(() => {
+    return () => {
+      // Cleanup: reset pending changes on unmount
+      setPendingChanges({});
+      setHasUnsavedChanges(false);
+    };
+  }, []);
+
+  const handleAttendanceChange = (
     studentId: string,
     status: "present" | "absent"
   ) => {
     if (!user) return;
 
+    // Update local state instead of database
+    setPendingChanges((prev) => {
+      const newChanges = { ...prev, [studentId]: status };
+      return newChanges;
+    });
+
+    // Mark that we have unsaved changes
+    setHasUnsavedChanges(true);
+  };
+
+  const handleSubmitAttendance = async () => {
+    if (!user || Object.keys(pendingChanges).length === 0) return;
+
     setSaving(true);
     try {
-      const dateStr = format(selectedDate, "yyyy-MM-dd");
-      const existingRecord = attendance.find((a) => a.student_id === studentId);
+      // Process all pending changes
+      const promises = Object.entries(pendingChanges).map(
+        async ([studentId, status]) => {
+          const existingRecord = attendance.find(
+            (a) => a.student_id === studentId
+          );
 
-      if (existingRecord) {
-        // Update existing record
-        const { error } = await supabase
-          .from("attendance")
-          .update({ status })
-          .eq("id", existingRecord.id);
+          if (existingRecord) {
+            // Update existing record
+            const { error } = await supabase
+              .from("attendance")
+              .update({ status })
+              .eq("id", existingRecord.id);
+            return { error, studentId, status };
+          } else {
+            // Create new record
+            const { error } = await supabase.from("attendance").insert({
+              student_id: studentId,
+              subject_id: subjectId,
+              date: dateStr,
+              status,
+              marked_by: user.id,
+            });
+            return { error, studentId, status };
+          }
+        }
+      );
 
-        if (error) throw error;
+      const results = await Promise.all(promises);
 
-        setAttendance((prev) =>
-          prev.map((a) => (a.id === existingRecord.id ? { ...a, status } : a))
-        );
-      } else {
-        // Create new record
-        const { data, error } = await supabase
-          .from("attendance")
-          .insert({
-            student_id: studentId,
-            subject_id: subjectId,
-            date: dateStr,
-            status,
-            marked_by: user.id,
-          })
-          .select()
-          .single();
-
-        if (error) throw error;
-        setAttendance((prev) => [...prev, data]);
+      // Check for any errors
+      const errors = results.filter((result) => result.error);
+      if (errors.length > 0) {
+        console.error("Some attendance updates failed:", errors);
+        throw new Error("Some attendance updates failed");
       }
+
+      // Clear pending changes and refresh data
+      setPendingChanges({});
+      setHasUnsavedChanges(false);
+
+      // Invalidate cache and refetch
+      cacheManagement.invalidateAttendance(subjectId, dateStr);
+      await refetchAttendance();
     } catch (error) {
-      console.error("Error updating attendance:", error);
+      console.error("Error submitting attendance:", error);
     } finally {
       setSaving(false);
     }
   };
 
+  const handleDiscardChanges = () => {
+    setPendingChanges({});
+    setHasUnsavedChanges(false);
+  };
+
   const getAttendanceStatus = (studentId: string) => {
+    // Check pending changes first, then database state
+    if (pendingChanges[studentId]) {
+      return pendingChanges[studentId];
+    }
     const record = attendance.find((a) => a.student_id === studentId);
     return record?.status;
   };
 
-  const getAttendanceStats = () => {
+  // Memoize expensive calculations
+  const attendanceStats = useMemo(() => {
     const present = attendance.filter((a) => a.status === "present").length;
     const absent = attendance.filter((a) => a.status === "absent").length;
     const total = students.length;
     const unmarked = total - present - absent;
 
     return { present, absent, total, unmarked };
-  };
+  }, [attendance, students.length]);
 
-  const groupStudents = (students: Student[]): GroupedStudents => {
+  const groupedStudents = useMemo((): GroupedStudents => {
     if (groupBy === "roll") {
       // Sort by roll number
-      const sortedStudents = [...students].sort((a, b) => {
+      const sortedStudents = [...students].sort((a: any, b: any) => {
         const rollA = parseInt(a.roll_number.replace(/\D/g, "")) || 0;
         const rollB = parseInt(b.roll_number.replace(/\D/g, "")) || 0;
         return rollA - rollB;
@@ -175,7 +222,7 @@ export default function AttendancePage() {
       return { "All Students": sortedStudents };
     } else {
       // Group by course
-      const grouped = students.reduce((acc: GroupedStudents, student) => {
+      const grouped = students.reduce((acc: GroupedStudents, student: any) => {
         const course = student.course;
         if (!acc[course]) {
           acc[course] = [];
@@ -186,7 +233,7 @@ export default function AttendancePage() {
 
       // Sort students within each course by roll number
       Object.keys(grouped).forEach((course) => {
-        grouped[course].sort((a, b) => {
+        grouped[course].sort((a: any, b: any) => {
           const rollA = parseInt(a.roll_number.replace(/\D/g, "")) || 0;
           const rollB = parseInt(b.roll_number.replace(/\D/g, "")) || 0;
           return rollA - rollB;
@@ -195,9 +242,9 @@ export default function AttendancePage() {
 
       return grouped;
     }
-  };
+  }, [students, groupBy]);
 
-  const getGroupStats = (groupStudents: Student[]) => {
+  const getGroupStats = (groupStudents: any[]) => {
     const groupAttendance = attendance.filter((att) =>
       groupStudents.some((student) => student.id === att.student_id)
     );
@@ -212,10 +259,18 @@ export default function AttendancePage() {
   };
 
   if (loading) {
+    return <LoadingSpinner message="Loading attendance data..." />;
+  }
+
+  if (error) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Icon icon="lucide:loader-2" className="h-8 w-8 animate-spin" />
-      </div>
+      <ErrorState
+        message="Failed to load attendance data"
+        onRetry={() => {
+          refetchSubject();
+          refetchAttendance();
+        }}
+      />
     );
   }
 
@@ -231,7 +286,7 @@ export default function AttendancePage() {
     );
   }
 
-  const stats = getAttendanceStats();
+  const stats = attendanceStats;
 
   return (
     <div className="space-y-8">
@@ -242,7 +297,19 @@ export default function AttendancePage() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => router.push("/dashboard")}>
+              onClick={() => {
+                if (hasUnsavedChanges) {
+                  if (
+                    confirm(
+                      "You have unsaved changes. Are you sure you want to leave? All changes will be lost."
+                    )
+                  ) {
+                    router.push("/dashboard");
+                  }
+                } else {
+                  router.push("/dashboard");
+                }
+              }}>
               <Icon icon="lucide:arrow-left" className="h-4 w-4 mr-2" />
               Back
             </Button>
@@ -254,6 +321,29 @@ export default function AttendancePage() {
           </p>
         </div>
         <div className="flex gap-3">
+          {/* Submit/Discard buttons - only show when there are unsaved changes */}
+          {hasUnsavedChanges && (
+            <>
+              <Button
+                onClick={handleDiscardChanges}
+                variant="outline"
+                disabled={saving}
+                className="text-orange-600 border-orange-600 hover:bg-orange-50">
+                <Icon icon="lucide:x" className="h-4 w-4 mr-2" />
+                Discard Changes
+              </Button>
+              <Button
+                onClick={handleSubmitAttendance}
+                disabled={saving}
+                className="bg-green-600 hover:bg-green-700">
+                <Icon icon="lucide:save" className="h-4 w-4 mr-2" />
+                {saving
+                  ? "Saving..."
+                  : `Save Changes (${Object.keys(pendingChanges).length})`}
+              </Button>
+            </>
+          )}
+
           <Select
             value={groupBy}
             onValueChange={(value: "roll" | "course") => setGroupBy(value)}>
@@ -276,7 +366,7 @@ export default function AttendancePage() {
               <Calendar
                 mode="single"
                 selected={selectedDate}
-                onSelect={(date) => date && setSelectedDate(date)}
+                onSelect={handleDateChange}
                 initialFocus
               />
             </PopoverContent>
@@ -356,7 +446,7 @@ export default function AttendancePage() {
         </Card>
       ) : (
         (() => {
-          const groupedStudents = groupStudents(students);
+          // Use memoized grouped students
           const groups = Object.keys(groupedStudents).sort();
 
           return (
@@ -466,53 +556,70 @@ export default function AttendancePage() {
                                   </div>
                                 </TableCell>
                                 <TableCell className="text-center">
-                                  <Button
-                                    variant={
-                                      status === "present"
-                                        ? "default"
-                                        : "outline"
-                                    }
-                                    size="sm"
-                                    onClick={() =>
-                                      handleAttendanceChange(
-                                        student.id,
-                                        "present"
-                                      )
-                                    }
-                                    disabled={saving}
-                                    className={`w-16 ${
-                                      status === "present"
-                                        ? "bg-green-600 hover:bg-green-700"
-                                        : "hover:bg-green-50"
-                                    }`}>
-                                    <Icon
-                                      icon="lucide:check"
-                                      className="h-4 w-4"
-                                    />
-                                  </Button>
+                                  <div className="relative">
+                                    <Button
+                                      variant={
+                                        status === "present"
+                                          ? "default"
+                                          : "outline"
+                                      }
+                                      size="sm"
+                                      onClick={() =>
+                                        handleAttendanceChange(
+                                          student.id,
+                                          "present"
+                                        )
+                                      }
+                                      disabled={saving}
+                                      className={`w-16 ${
+                                        status === "present"
+                                          ? "bg-green-600 hover:bg-green-700"
+                                          : "hover:bg-green-50"
+                                      }`}>
+                                      <Icon
+                                        icon="lucide:check"
+                                        className="h-4 w-4"
+                                      />
+                                    </Button>
+                                    {/* Pending change indicator */}
+                                    {pendingChanges[student.id] ===
+                                      "present" && (
+                                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-orange-500 rounded-full border-2 border-white"></div>
+                                    )}
+                                  </div>
                                 </TableCell>
                                 <TableCell className="text-center">
-                                  <Button
-                                    variant={
-                                      status === "absent"
-                                        ? "default"
-                                        : "outline"
-                                    }
-                                    size="sm"
-                                    onClick={() =>
-                                      handleAttendanceChange(
-                                        student.id,
-                                        "absent"
-                                      )
-                                    }
-                                    disabled={saving}
-                                    className={`w-16 ${
-                                      status === "absent"
-                                        ? "bg-red-600 hover:bg-red-700"
-                                        : "hover:bg-red-50"
-                                    }`}>
-                                    <Icon icon="lucide:x" className="h-4 w-4" />
-                                  </Button>
+                                  <div className="relative">
+                                    <Button
+                                      variant={
+                                        status === "absent"
+                                          ? "default"
+                                          : "outline"
+                                      }
+                                      size="sm"
+                                      onClick={() =>
+                                        handleAttendanceChange(
+                                          student.id,
+                                          "absent"
+                                        )
+                                      }
+                                      disabled={saving}
+                                      className={`w-16 ${
+                                        status === "absent"
+                                          ? "bg-red-600 hover:bg-red-700"
+                                          : "hover:bg-red-50"
+                                      }`}>
+                                      <Icon
+                                        icon="lucide:x"
+                                        className="h-4 w-4"
+                                      />
+                                    </Button>
+                                    {/* Pending change indicator */}
+                                    {pendingChanges[student.id] ===
+                                      "absent" && (
+                                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-orange-500 rounded-full border-2 border-white"></div>
+                                    )}
+                                  </div>
                                 </TableCell>
                               </TableRow>
                             );

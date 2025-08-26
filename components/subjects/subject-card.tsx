@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, memo } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/button";
@@ -24,7 +24,10 @@ interface SubjectCardProps {
   onUpdate: () => void;
 }
 
-export function SubjectCard({ subject, onUpdate }: SubjectCardProps) {
+export const SubjectCard = memo(function SubjectCard({
+  subject,
+  onUpdate,
+}: SubjectCardProps) {
   const router = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -121,4 +124,4 @@ export function SubjectCard({ subject, onUpdate }: SubjectCardProps) {
       </CardContent>
     </Card>
   );
-}
+});

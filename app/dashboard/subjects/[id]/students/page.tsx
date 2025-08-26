@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { supabase, type Subject, type Student } from "@/lib/supabase";
+import {
+  useSubjectWithStudents,
+  cacheManagement,
+} from "@/lib/hooks/use-optimized-data";
 import { CreateStudentDialog } from "@/components/students/create-student-dialog";
 import { StudentsTable } from "@/components/students/students-table";
 import { ImportStudentsDialog } from "@/components/students/import-students-dialog";
@@ -21,57 +24,66 @@ export default function StudentsPage() {
   const router = useRouter();
   const subjectId = params.id as string;
 
-  const [subject, setSubject] = useState<Subject | null>(null);
-  const [students, setStudents] = useState<Student[]>([]);
-  const [loading, setLoading] = useState(true);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
 
-  useEffect(() => {
-    fetchSubjectAndStudents();
-  }, [subjectId]);
+  // Use optimized hook to fetch subject and students together
+  const { data, loading, error, refetch } = useSubjectWithStudents(subjectId);
+  const subject = data?.subject;
+  const students = data?.students || [];
 
-  const fetchSubjectAndStudents = async () => {
-    try {
-      // Fetch subject details
-      const { data: subjectData, error: subjectError } = await supabase
-        .from("subjects")
-        .select("*")
-        .eq("id", subjectId)
-        .single();
-
-      if (subjectError) throw subjectError;
-      setSubject(subjectData);
-
-      // Fetch students
-      const { data: studentsData, error: studentsError } = await supabase
-        .from("students")
-        .select("*")
-        .eq("subject_id", subjectId);
-
-      if (studentsError) throw studentsError;
-      setStudents(studentsData || []);
-    } catch (error) {
-      console.error("Error fetching data:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Debug logging
+  console.log("StudentsPage: data:", data);
+  console.log("StudentsPage: subject:", subject);
+  console.log("StudentsPage: students:", students);
 
   const handleStudentCreated = () => {
-    fetchSubjectAndStudents();
+    // Invalidate cache and refetch
+    console.log("StudentsPage: Invalidating cache for subject:", subjectId);
+    cacheManagement.invalidateStudents(subjectId);
+    refetch();
     setShowCreateDialog(false);
   };
 
   const handleStudentsImported = () => {
-    fetchSubjectAndStudents();
+    // Invalidate cache and refetch
+    console.log("StudentsPage: Invalidating cache for subject:", subjectId);
+    cacheManagement.invalidateStudents(subjectId);
+    refetch();
     setShowImportDialog(false);
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Icon icon="lucide:loader-2" className="h-8 w-8 animate-spin" />
+        <div className="text-center">
+          <Icon
+            icon="lucide:loader-2"
+            className="h-8 w-8 animate-spin mx-auto mb-2"
+          />
+          <p className="text-sm text-muted-foreground">Loading students...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <Icon
+            icon="lucide:alert-circle"
+            className="h-8 w-8 text-destructive mx-auto mb-2"
+          />
+          <p className="text-sm text-muted-foreground">Failed to load data</p>
+          <Button
+            onClick={refetch}
+            variant="outline"
+            size="sm"
+            className="mt-2">
+            Try Again
+          </Button>
+        </div>
       </div>
     );
   }
@@ -179,7 +191,7 @@ export default function StudentsPage() {
         <StudentsTable
           students={students}
           subjectId={subjectId}
-          onUpdate={fetchSubjectAndStudents}
+          onUpdate={refetch}
         />
       )}
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,57 +10,69 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { supabase, type Subject } from "@/lib/supabase";
 import { useAuth } from "@/contexts/auth-context";
+import { useSubjects, cacheManagement } from "@/lib/hooks/use-optimized-data";
 import { CreateSubjectDialog } from "@/components/subjects/create-subject-dialog";
 import { SubjectCard } from "@/components/subjects/subject-card";
 
 export default function Dashboard() {
-  const { user } = useAuth();
-  const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { user, isAuthenticated } = useAuth();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
 
-  useEffect(() => {
-    if (user) {
-      fetchSubjects();
-    }
-  }, [user]);
-
-  const fetchSubjects = async () => {
-    if (!user?.id) {
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const { data, error } = await supabase
-        .from("subjects")
-        .select(
-          "id, teacher_id, name, code, description, academic_year, semester, created_at, updated_at"
-        )
-        .eq("teacher_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(20); // Limit for better performance
-
-      if (error) throw error;
-      setSubjects(data || []);
-    } catch (error) {
-      console.error("Error fetching subjects:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Use optimized hook with caching
+  const {
+    data: subjects,
+    loading,
+    error,
+    refetch,
+  } = useSubjects(user?.id, {
+    enabled: isAuthenticated,
+  });
 
   const handleSubjectCreated = () => {
-    fetchSubjects();
+    // Invalidate cache and refetch
+    if (user?.id) {
+      cacheManagement.invalidateSubjects(user.id);
+    }
+    refetch();
     setShowCreateDialog(false);
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Icon icon="lucide:loader-2" className="h-8 w-8 animate-spin" />
+        <div className="text-center">
+          <Icon
+            icon="lucide:loader-2"
+            className="h-8 w-8 animate-spin mx-auto mb-2"
+          />
+          <p className="text-sm text-muted-foreground">
+            Loading your subjects...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <Icon
+            icon="lucide:alert-circle"
+            className="h-8 w-8 text-destructive mx-auto mb-2"
+          />
+          <p className="text-sm text-muted-foreground">
+            Failed to load subjects
+          </p>
+          <Button
+            onClick={refetch}
+            variant="outline"
+            size="sm"
+            className="mt-2">
+            Try Again
+          </Button>
+        </div>
       </div>
     );
   }
@@ -82,7 +94,7 @@ export default function Dashboard() {
       </div>
 
       {/* Subjects Grid */}
-      {subjects.length === 0 ? (
+      {!subjects || subjects.length === 0 ? (
         <Card className="col-span-full">
           <CardContent className="flex flex-col items-center justify-center py-16">
             <div className="w-16 h-16 mb-4 opacity-50">
@@ -104,7 +116,7 @@ export default function Dashboard() {
             <SubjectCard
               key={subject.id}
               subject={subject}
-              onUpdate={fetchSubjects}
+              onUpdate={refetch}
             />
           ))}
         </div>

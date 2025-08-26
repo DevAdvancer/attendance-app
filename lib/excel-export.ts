@@ -14,6 +14,16 @@ interface AttendanceReport {
   attendance_percentage: number;
 }
 
+interface DailyAttendance {
+  date: string;
+  student_id: string;
+  student_name: string;
+  reg_number: string;
+  roll_number: string;
+  course: string;
+  status: "present" | "absent" | "unmarked";
+}
+
 interface DateRange {
   start: Date | null;
   end: Date | null;
@@ -21,6 +31,7 @@ interface DateRange {
 
 export async function exportToExcel(
   data: AttendanceReport[],
+  dailyAttendance: DailyAttendance[],
   subject: Subject,
   dateRange: DateRange,
   filename: string
@@ -62,6 +73,28 @@ export async function exportToExcel(
 
   // Add the worksheet to the workbook
   XLSX.utils.book_append_sheet(workbook, worksheet, "Attendance Report");
+
+  // Create a daily attendance sheet only if data is provided
+  if (dailyAttendance && dailyAttendance.length > 0) {
+    const dailyAttendanceSheet = createDailyAttendanceSheet(dailyAttendance, subject);
+    const dailyWorksheet = XLSX.utils.json_to_sheet(dailyAttendanceSheet);
+    // Dynamic column widths for pivot table
+    const columnWidths = [
+      { wch: 12 }, // Roll No.
+      { wch: 25 }, // Name
+      { wch: 18 }, // Registration No.
+      { wch: 20 }, // Course
+    ];
+
+    // Add date column widths (compact for dates)
+    const uniqueDates = [...new Set(dailyAttendance.map(d => d.date))].sort();
+    uniqueDates.forEach(() => {
+      columnWidths.push({ wch: 8 }); // Compact width for date columns
+    });
+
+    dailyWorksheet["!cols"] = columnWidths;
+    XLSX.utils.book_append_sheet(workbook, dailyWorksheet, "Daily Attendance");
+  }
 
   // Create a summary sheet
   const summary = createSummarySheet(data, subject, dateRange);
@@ -123,4 +156,101 @@ function createSummarySheet(
     { "Report Details": "Average (60-69%)", "Value": averageCount },
     { "Report Details": "Poor (<60%)", "Value": poorCount },
   ];
+}
+
+function createDailyAttendanceSheet(
+  dailyAttendance: DailyAttendance[],
+  subject: Subject
+): Array<{ [key: string]: string | number }> {
+  if (!dailyAttendance || dailyAttendance.length === 0) {
+    return [];
+  }
+
+  // Get unique dates and students
+  const uniqueDates = [...new Set(dailyAttendance.map(d => d.date))].sort();
+  const uniqueStudents = [...new Set(dailyAttendance.map(d => d.student_id))];
+
+  // Create a map for quick lookup
+  const attendanceMap = new Map();
+  dailyAttendance.forEach(record => {
+    const key = `${record.student_id}-${record.date}`;
+    attendanceMap.set(key, record.status);
+  });
+
+  // Get student details for the first record (they should all have same details)
+  const studentDetails = dailyAttendance.reduce((acc, record) => {
+    if (!acc[record.student_id]) {
+      acc[record.student_id] = {
+        name: record.student_name,
+        reg_number: record.reg_number,
+        roll_number: record.roll_number,
+        course: record.course
+      };
+    }
+    return acc;
+  }, {} as Record<string, { name: string; reg_number: string; roll_number: string; course: string }>);
+
+  // Create pivot table structure
+  const exportData: Array<{ [key: string]: string | number }> = [];
+
+  // Header row with dates as columns
+  const headerRow: { [key: string]: string | number } = {
+    "Roll No.": "Roll No.",
+    "Name": "Name",
+    "Registration No.": "Registration No.",
+    "Course": "Course"
+  };
+
+  // Add date columns
+  uniqueDates.forEach(date => {
+    headerRow[format(new Date(date), "MMM dd")] = format(new Date(date), "MMM dd");
+  });
+
+  exportData.push(headerRow);
+
+  // Data rows - one per student
+  uniqueStudents.forEach(studentId => {
+    const student = studentDetails[studentId];
+    const row: { [key: string]: string | number } = {
+      "Roll No.": student.roll_number,
+      "Name": student.name,
+      "Registration No.": student.reg_number,
+      "Course": student.course
+    };
+
+    // Add attendance status for each date
+    uniqueDates.forEach(date => {
+      const key = `${studentId}-${date}`;
+      const status = attendanceMap.get(key);
+
+      if (status === "present") {
+        row[format(new Date(date), "MMM dd")] = "P";
+      } else if (status === "absent") {
+        row[format(new Date(date), "MMM dd")] = "A";
+      } else {
+        row[format(new Date(date), "MMM dd")] = "-";
+      }
+    });
+
+    exportData.push(row);
+  });
+
+  // Add legend row
+  const legendRow: { [key: string]: string | number } = {
+    "Roll No.": "Legend:",
+    "Name": "P = Present",
+    "Registration No.": "A = Absent",
+    "Course": "- = Not Marked"
+  };
+
+  // Add empty row for spacing
+  const emptyRow: { [key: string]: string | number } = {};
+  uniqueDates.forEach(date => {
+    emptyRow[format(new Date(date), "MMM dd")] = "";
+  });
+
+  exportData.push(emptyRow);
+  exportData.push(legendRow);
+
+  return exportData;
 }
