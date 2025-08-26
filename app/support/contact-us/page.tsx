@@ -255,28 +255,10 @@ export default function ContactUsPage() {
                     <div>
                       <h3 className="font-semibold">Email Support</h3>
                       <p className="text-sm text-muted-foreground">
-                        support@attendancetracker.com
+                        theabhirupkumar@gmail.com
                       </p>
                       <p className="text-xs text-muted-foreground">
                         Response within 24 hours
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                      <Icon
-                        icon="lucide:message-circle"
-                        className="h-6 w-6 text-primary"
-                      />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold">Live Chat</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Available during business hours
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Mon-Fri, 9 AM - 6 PM EST
                       </p>
                     </div>
                   </div>
@@ -291,41 +273,11 @@ export default function ContactUsPage() {
                     <div>
                       <h3 className="font-semibold">Phone Support</h3>
                       <p className="text-sm text-muted-foreground">
-                        +1 (555) 123-4567
+                        +91 8250772828
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        Mon-Fri, 9 AM - 6 PM EST
+                        Mon-Fri, 9 AM - 6 PM IST
                       </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Office Hours */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Office Hours</CardTitle>
-                  <CardDescription>
-                    When you can expect to hear back from us.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-sm">Monday - Friday</span>
-                      <span className="text-sm font-medium">
-                        9:00 AM - 6:00 PM EST
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm">Saturday</span>
-                      <span className="text-sm font-medium">
-                        10:00 AM - 2:00 PM EST
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm">Sunday</span>
-                      <span className="text-sm font-medium">Closed</span>
                     </div>
                   </div>
                 </CardContent>
