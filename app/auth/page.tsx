@@ -18,11 +18,11 @@ export default function AuthPage() {
       <header className="border-b bg-card/50 backdrop-blur-sm">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3 cursor-pointer">
-            <div className="w-8 h-8 bg-white rounded-lg p-1.5 shadow-sm border">
+            <div className="w-12 h-12 bg-white rounded-xl p-2 shadow-md border-2 border-gray-100 hover:shadow-lg transition-shadow">
               <img
                 src="/logo.png"
                 alt="AttendanceTracker Logo"
-                className="w-full h-full"
+                className="w-full h-full object-contain"
               />
             </div>
             <h1 className="text-xl font-bold">AttendanceTracker</h1>
@@ -40,17 +40,7 @@ export default function AuthPage() {
       {/* Auth Content */}
       <main className="flex items-center justify-center min-h-[calc(100vh-64px)] p-4">
         <div className="w-full max-w-md">
-          <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold mb-2">
-              {isLoginMode ? "Welcome Back" : "Create Account"}
-            </h2>
-            <p className="text-muted-foreground">
-              {isLoginMode
-                ? "Sign in to access your dashboard"
-                : "Join thousands of educators using AttendanceTracker"}
-            </p>
-          </div>
-
+          
           {isLoginMode ? (
             <LoginForm onToggleMode={toggleMode} />
           ) : (

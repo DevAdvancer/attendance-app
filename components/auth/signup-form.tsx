@@ -94,7 +94,7 @@ export function SignupForm({ onToggleMode }: SignupFormProps) {
     <Card className="w-full max-w-md">
       <CardHeader className="space-y-1">
         <div className="flex items-center justify-center mb-4">
-          <div className="w-16 h-16">
+          <div className="w-20 h-20 bg-white rounded-lg p-1.5 shadow-sm border">
             <img
               src="/logo.png"
               alt="AttendanceTracker Logo"
